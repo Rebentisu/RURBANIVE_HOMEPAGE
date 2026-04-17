@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Milos Season Clock + Menu</title>
+
+  <style>
+    :root{
+      --menuW: 300px;
+      --peek: 22px;
+
+      /* Brand palette */
+      --g-dark: #326450;
+      --y-accent: #ECBF00;
+      --ink: #212125;
+
+      /* Season palette (dusty, natural) */
+      --winter1: #cfdde8;
+      --spring1: #cfe3b1;
+      --summer1: #ead8a8;
+      --autumn1: #e2c2a8;
+
+      /* seasonal stop defaults */
+      --pMar: 16.5%;
+      --pJun: 41.5%;
+      --pSep: 66.5%;
+      --pDec: 91.5%;
+    }
+
+    /* Reset */
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; margin: 0; }
+
+    body{
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+      background: radial-gradient(
+        circle at 50% 50%,
+        #eaf3ef 0%,
+        #d6e7df 18%,
+        #c2dbd0 35%,
+        #b2d0c3 52%
+      );
+    }
+
+    /* ===== Blob menu ===== */
+    #menu{
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--menuW);
+      height: 100%;
+      background: var(--g-dark);
+      z-index: 30;
+      overflow: visible;
+
+      transform: translateX(calc(-100% + var(--peek)));
+      transition: transform 900ms cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    #menu.expanded{ transform: translateX(0); }
+
+    .menu-inner{
+      position: relative;
+      height: 100%;
+      z-index: 10;
+      padding: 18px 0 0;
+    }
+
+    .brand{
+      width: 100%;
+      padding: 4px 18px 0px;
+    }
+
+    .brand-logo{
+      display: block;
+      width: min(210px, 80%);
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+    }
+
+    .menu-inner ul{
+      margin: 0;
+      padding: 10px 0 0;
+      list-style: none;
+      width: 80%;
+      margin-left: 10%;
+    }
+
+    .menu-inner li{
+      color: rgba(255,255,255,0.92);
+      padding: 16px 0;
+      font-size: 18px;
+    }
+
+    .menu-inner li a{
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .menu-inner li:hover{
+      color: var(--y-accent);
+    }
+
+    #blob{
+      position: absolute;
+      top: 0;
+      right: calc(-1 * var(--peek));
+      width: var(--peek);
+      min-width: var(--peek);
+      height: 100%;
+      z-index: 5;
+      pointer-events: none;
+      overflow: visible;
+      display: block;
+    }
+
+    #blob-path{ fill: var(--g-dark); }
+
+    .hamburger{
+      position: absolute;
+      right: calc(-1 * var(--peek) + 10px);
+      width: 34px;
+      height: 26px;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    .hamburger .line{
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--y-accent);
+      border-radius: 999px;
+    }
+
+    .hamburger .line:nth-child(1){ top: 0; }
+    .hamburger .line:nth-child(2){ top: 50%; transform: translateY(-50%); }
+    .hamburger .line:nth-child(3){ bottom: 0; }
+
+    /* ===== Clock ===== */
+    .wrap{
+      width: 100%;
+      text-align: center;
+      display: grid;
+      place-items: center;
+    }
+
+    .clock-wrap{
+      position: relative;
+      width: min(700px, 96vw);
+      aspect-ratio: 1 / 1;
+    }
+
+    .outer-label{
+      position:absolute;
+      font-weight: 900;
+      letter-spacing: 6px;
+      font-size: 15px;
+      opacity: 0.9;
+      z-index: 15;
+    }
+
+    .outer-label.spring{ top: 8%; left: 8%; color:#2f7d32; }
+    .outer-label.summer{ top: 8%; right: 8%; color:#b07f00; }
+    .outer-label.autumn{ bottom: 8%; right: 8%; color:#a14d1a; }
+    .outer-label.winter{ bottom: 8%; left: 8%; color:#1e5aa8; }
+
+    .wheel{
+      position:absolute;
+      inset: 10%;
+      border-radius: 50%;
+      background: transparent;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    /* Seasonal ring */
+    .ring{
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      z-index: 1;
+      background:
+        conic-gradient(
+          from -90deg,
+          var(--winter1) 0 var(--pMar),
+          var(--spring1) var(--pMar) var(--pJun),
+          var(--summer1) var(--pJun) var(--pSep),
+          var(--autumn1) var(--pSep) var(--pDec),
+          var(--winter1) var(--pDec) 100%
+        );
+    }
+
+    .ring::after{
+      content: "";
+      position: absolute;
+      inset: 18%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(1px);
+    }
+
+    /* Outer black edge */
+    .wheel::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      outline: 10px solid #222;
+      outline-offset: -10px;
+      pointer-events:none;
+      z-index: 6;
+    }
+
+    /* crosshair */
+    .cross{
+      position:absolute;
+      left:50%;
+      top:50%;
+      background:#d7d7d7;
+      opacity:0.55;
+      z-index: 2;
+    }
+
+    .cross.v{ width:2px; height:80%; transform:translate(-50%,-50%); }
+    .cross.h{ height:2px; width:80%; transform:translate(-50%,-50%); }
+
+    /* ticks */
+    .ticks{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index: 3;
+    }
+
+    .tick{
+      position:absolute;
+      left:50%;
+      top:50%;
+    }
+
+    .tick::before{
+      content:"";
+      position:absolute;
+      transform: translateX(var(--r)) translateY(-50%);
+      width:2px;
+      height:9px;
+      background:#777;
+      opacity:0.45;
+      border-radius:2px;
+    }
+
+    .tick.long::before{
+      height:14px;
+      background:#555;
+      opacity:0.7;
+    }
+
+    .tick.season::before{
+      width:4px;
+      height:22px;
+      background:#111;
+      opacity:1;
+    }
+
+    /* glow arc */
+    .glow{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index: 4;
+    }
+
+    .glow-arc{
+      fill:none;
+      stroke:#e11d48;
+      stroke-width:1.5;
+      stroke-linecap:round;
+      stroke-dasharray: 10 254;
+      filter: drop-shadow(0 0 2px rgba(225,29,72,.30));
+    }
+
+    /* Image */
+    .milos-frame{
+      position:absolute;
+      inset: 18%;
+      border-radius: 18px;
+      overflow:hidden;
+      z-index: 10;
+      background: transparent;
+      display: grid;
+      place-items: center;
+    }
+
+    #milosImage{
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      display:block;
+      transform: scale(1);
+      transition: transform 220ms ease;
+      transform-origin: center;
+    }
+
+    .milos-frame:hover #milosImage{
+      transform: scale(1.08);
+    }
+
+    .info{
+      margin-top: 16px;
+      font-size: 14px;
+      opacity: .75;
+      color: var(--ink);
+    }
+
+    @media (max-width: 768px){
+      .outer-label{
+        font-size: 12px;
+        letter-spacing: 3px;
+      }
+
+      .clock-wrap{
+        width: min(95vw, 560px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Blob Menu (LEFT) -->
+  <div id="menu">
+    <button class="hamburger" type="button" aria-label="Toggle menu">
+      <span class="line"></span>
+      <span class="line"></span>
+      <span class="line"></span>
+    </button>
+
+    <div class="menu-inner">
+      <div class="brand">
+        <a
+          href="https://rurbanive-project.eu/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Visit the RURBANIVE project website"
+        >
+          <img
+            class="brand-logo"
+            src="https://zenodo.org/records/18361008/files/RURBANIVE_stroke.png?download=1"
+            alt="RURBANIVE – Rural Urban Immersiveness"
+            loading="eager"
+          />
+        </a>
+      </div>
+
+      <ul>
+        <li><a href="/index.html">Home</a></li>
+        <li><a href="/plant-database.html">Plant Database</a></li>
+        <li><a href="/restoration-protocols.html">Restoration Protocols</a></li>
+        <li><a href="/legislation.html">Legislation</a></li>
+        <li><a href="/about.html">About</a></li>
+      </ul>
+    </div>
+
+    <svg id="blob" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 1000" preserveAspectRatio="none">
+      <path id="blob-path" d=""></path>
+    </svg>
+  </div>
+
+  <!-- Main Content -->
+  <main class="wrap">
+    <div class="clock-wrap">
+      <div class="outer-label spring">SPRING</div>
+      <div class="outer-label summer">SUMMER</div>
+      <div class="outer-label autumn">AUTUMN</div>
+      <div class="outer-label winter">WINTER</div>
+
+      <div class="wheel" id="wheel">
+        <div class="ring"></div>
+        <div class="ticks" id="ticks"></div>
+
+        <svg class="glow" viewBox="0 0 100 100" aria-hidden="true">
+          <g id="glowMarker">
+            <circle class="glow-arc" cx="50" cy="50" r="42"></circle>
+          </g>
+        </svg>
+
+        <div class="cross v"></div>
+        <div class="cross h"></div>
+      </div>
+
+      <div class="milos-frame" aria-label="Milos vegetation story">
+        <img id="milosImage" alt="Milos vegetation map" />
+      </div>
+    </div>
+
+    <p class="info" id="info">Loading…</p>
+  </main>
+
+  <script>
+    // ================================
+    // 1) Season Clock + Image Switching
+    // ================================
+    const ticksEl = document.getElementById("ticks");
+    const wheelEl = document.getElementById("wheel");
+    const glowMarker = document.getElementById("glowMarker");
+    const info = document.getElementById("info");
+    const milosImage = document.getElementById("milosImage");
+
+    // ---- KEEP THIS MATH / MAPPING ----
+    const clockToCss = (deg) => deg - 90;
+    const NEEDLE_OFFSET_DEG = 180;
+
+    function isLeapYear(y) {
+      return new Date(y, 1, 29).getMonth() === 1;
+    }
+
+    function daysInYear(y) {
+      return isLeapYear(y) ? 366 : 365;
+    }
+
+    function dayOfYear(d) {
+      const start = new Date(d.getFullYear(), 0, 1);
+      const A = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+      const B = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      return Math.floor((B - A) / 86400000) + 1;
+    }
+
+    function getSeason(now) {
+      const m = now.getMonth();
+      if (m >= 2 && m <= 4) return "Spring";
+      if (m >= 5 && m <= 7) return "Summer";
+      if (m >= 8 && m <= 10) return "Autumn";
+      return "Winter";
+    }
+
+    // Images
+    const IMG_WINTER = "https://zenodo.org/records/18366334/files/winter-min.png";
+    const IMG_SUMMER = "https://zenodo.org/records/18366334/files/summer-min.png";
+    const IMG_TRANSITION = "https://zenodo.org/records/18366334/files/spring_autumn-min.png";
+
+    function imageForSeason(season) {
+      if (season === "Winter") return IMG_WINTER;
+      if (season === "Summer") return IMG_SUMMER;
+      return IMG_TRANSITION; // Spring or Autumn
+    }
+
+    /* Set the seasonal ring stops (Mar/Jun/Sep/Dec) as % */
+    function setSeasonRingStops() {
+      const year = new Date().getFullYear();
+      const total = daysInYear(year);
+
+      const doyMar = dayOfYear(new Date(year, 2, 1));   // Mar 1
+      const doyJun = dayOfYear(new Date(year, 5, 1));   // Jun 1
+      const doySep = dayOfYear(new Date(year, 8, 1));   // Sep 1
+      const doyDec = dayOfYear(new Date(year, 11, 1));  // Dec 1
+
+      const pMar = (doyMar / total) * 100;
+      const pJun = (doyJun / total) * 100;
+      const pSep = (doySep / total) * 100;
+      const pDec = (doyDec / total) * 100;
+
+      const ring = wheelEl.querySelector(".ring");
+      if (!ring) return;
+
+      ring.style.setProperty("--pMar", `${pMar}%`);
+      ring.style.setProperty("--pJun", `${pJun}%`);
+      ring.style.setProperty("--pSep", `${pSep}%`);
+      ring.style.setProperty("--pDec", `${pDec}%`);
+    }
+
+    function buildTicks() {
+      ticksEl.innerHTML = "";
+
+      const r = `${Math.round(wheelEl.clientWidth * 0.42)}px`;
+      const year = new Date().getFullYear();
+      const total = daysInYear(year);
+
+      const seasonDoys = new Set([
+        dayOfYear(new Date(year, 2, 1)),  // Mar 1
+        dayOfYear(new Date(year, 5, 1)),  // Jun 1
+        dayOfYear(new Date(year, 8, 1)),  // Sep 1
+        dayOfYear(new Date(year, 11, 1)), // Dec 1
+      ]);
+
+      // 60 ticks
+      for (let i = 0; i < 60; i++) {
+        const tick = document.createElement("div");
+        tick.className = "tick";
+        if (i % 5 === 0) tick.classList.add("long");
+        tick.style.setProperty("--r", r);
+        tick.style.transform = `translate(-50%,-50%) rotate(${clockToCss(i * 6)}deg)`;
+        ticksEl.appendChild(tick);
+      }
+
+      // 4 bold season-start ticks
+      for (const doy of seasonDoys) {
+        const tick = document.createElement("div");
+        tick.className = "tick season";
+        tick.style.setProperty("--r", r);
+        tick.style.transform =
+          `translate(-50%,-50%) rotate(${clockToCss((doy / total) * 360)}deg)`;
+        ticksEl.appendChild(tick);
+      }
+    }
+
+    let lastSeason = null;
+    let lastYear = new Date().getFullYear();
+
+    function updateClock() {
+      const now = new Date();
+
+      // if year changed, recompute ring stops + ticks
+      const y = now.getFullYear();
+      if (y !== lastYear) {
+        lastYear = y;
+        setSeasonRingStops();
+        buildTicks();
+      }
+
+      const total = daysInYear(y);
+      const doy = dayOfYear(now);
+
+      const secondsToday =
+        now.getHours() * 3600 +
+        now.getMinutes() * 60 +
+        now.getSeconds();
+
+      const frac = (doy - 1 + secondsToday / 86400) / total;
+
+      const clockDeg = frac * 360;
+      const cssDeg = clockToCss(clockDeg) + NEEDLE_OFFSET_DEG;
+
+      glowMarker.setAttribute("transform", `rotate(${cssDeg} 50 50)`);
+
+      const season = getSeason(now);
+      if (season !== lastSeason) {
+        milosImage.src = imageForSeason(season);
+        lastSeason = season;
+      }
+
+      info.textContent = `Now: ${now.toLocaleString()} • ${season} • Day ${doy}/${total}`;
+    }
+
+    setSeasonRingStops();
+    buildTicks();
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    window.addEventListener("resize", () => {
+      buildTicks();
+    });
+
+    // ================================
+    // 2) Blob menu + hamburger follows cursor
+    // ================================
+    (() => {
+      const menu = document.getElementById("menu");
+      const blob = document.getElementById("blob");
+      const blobPath = document.getElementById("blob-path");
+      const hamburger = document.querySelector(".hamburger");
+      const menuInner = document.querySelector(".menu-inner");
+
+      if (!menu || !blob || !blobPath || !hamburger || !menuInner) return;
+
+      const VB_W = 60;
+      const VB_H = 1000;
+
+      const anchorDistance = 120;
+      const curviness = anchorDistance - 55;
+      const hoverZone = 150;
+      const expandAmount = 8;
+      const maxPull = 22;
+
+      function getPeek() {
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue("--peek")
+          .trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : 22;
+      }
+
+      let peek = getPeek();
+
+      let mouseX = 0;
+      let mouseYpx = window.innerHeight / 2;
+
+      let yPx = mouseYpx;
+      let curveX = 0;
+      let targetX = 0;
+
+      let menuExpanded = false;
+
+      const SMOOTH_Y = 0.18;
+      const SMOOTH_X = 0.12;
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function openMenu() {
+        menu.classList.add("expanded");
+        menuExpanded = true;
+      }
+
+      function closeMenu() {
+        menu.classList.remove("expanded");
+        menuExpanded = false;
+      }
+
+      window.addEventListener("pointermove", (e) => {
+        mouseX = e.clientX;
+        mouseYpx = e.clientY;
+      });
+
+      window.addEventListener("resize", () => {
+        peek = getPeek();
+      });
+
+      hamburger.addEventListener("mouseenter", openMenu);
+      menuInner.addEventListener("mouseenter", openMenu);
+      menu.addEventListener("mouseleave", closeMenu);
+
+      hamburger.addEventListener("click", (e) => {
+        e.preventDefault();
+        menuExpanded ? closeMenu() : openMenu();
+      });
+
+      (function initPath() {
+        const yVB0 = VB_H / 2;
+        const d0 =
+          "M" + VB_W + "," + VB_H +
+          "H0V0h" + VB_W +
+          "v" + (yVB0 - anchorDistance) +
+          "c0," + curviness + ",0," + curviness + ",0," + anchorDistance +
+          "S" + VB_W + "," + yVB0 + "," + VB_W + "," + (yVB0 + anchorDistance * 2) +
+          "V" + VB_H + "z";
+        blobPath.setAttribute("d", d0);
+        blob.style.width = peek + "px";
+      })();
+
+      function tick() {
+        const vh = Math.max(1, window.innerHeight);
+
+        const minPx = (anchorDistance / VB_H) * vh;
+        const maxPx = ((VB_H - anchorDistance) / VB_H) * vh;
+        const clampedY = Math.min(maxPx, Math.max(minPx, mouseYpx));
+
+        yPx = lerp(yPx, clampedY, SMOOTH_Y);
+
+        const hamH = hamburger.offsetHeight || 26;
+        hamburger.style.top = (yPx - hamH / 2) + "px";
+
+        const yVB = (yPx / vh) * VB_H;
+
+        if (menuExpanded || mouseX > hoverZone) {
+          targetX = 0;
+        } else {
+          const raw = -(((VB_W + expandAmount) / 100) * (mouseX - hoverZone));
+          targetX = Math.max(-maxPull, Math.min(0, raw));
+        }
+
+        curveX = lerp(curveX, targetX, SMOOTH_X);
+
+        const d =
+          "M" + VB_W + "," + VB_H +
+          "H0V0h" + VB_W +
+          "v" + (yVB - anchorDistance) +
+          "c0," + curviness + "," + curveX + "," + curviness + "," + curveX + "," + anchorDistance +
+          "S" + VB_W + "," + yVB + "," + VB_W + "," + (yVB + anchorDistance * 2) +
+          "V" + VB_H + "z";
+
+        blobPath.setAttribute("d", d);
+        blob.style.width = (peek + Math.abs(curveX)) + "px";
+
+        requestAnimationFrame(tick);
+      }
+
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
